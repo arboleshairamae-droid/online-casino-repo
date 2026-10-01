@@ -1,3 +1,7 @@
+The API stores users and access tokens in Google Sheets through the Apps Script web app in `google-apps-script/Code.gs`. Open Apps Script from the target spreadsheet, paste that file's code, and run `setupLuckyVaultSheets` once.
+In Apps Script project settings, add a Script Property named `API_KEY` with a long random secret. Set `GOOGLE_APPS_SCRIPT_API_KEY` to the same value in `backend/.env`, and set `GOOGLE_APPS_SCRIPT_URL` to the web app URL. Deploy the script as a Web app, execute as yourself, and allow access to anyone; the API key protects its POST operations. After changing the script, deploy a new version and update the URL in `.env` if Google gives you a different one. Restart Laravel after changing environment values.
+
+The web app's GET endpoint is a health check. POST requests use JSON actions (`rows`, `append`, `update`) and require the API key. Laravel's relational database migrations are not used by these API routes; sessions and cache use local files, and queued work runs synchronously.
 <p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
 
 <p align="center">
@@ -57,3 +61,19 @@ If you discover a security vulnerability within Laravel, please send an e-mail t
 ## License
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+
+## Google Sheets storage
+
+The API stores users and access tokens in Google Sheets through the Apps Script web app in `google-apps-script/Code.gs`. Open Apps Script from the target spreadsheet, paste that file's code, and run `setupLuckyVaultSheets` once.
+
+Create three tabs with these exact names and first-row headers:
+
+- `Users`: `id`, `name`, `email`, `password`, `balance`, `created_at`
+- `Activities`: `id`, `user_id`, `activity_type`, `description`, `credits`, `created_at`, `updated_at`
+- `Tokens`: `token_hash`, `user_id`, `created_at`
+
+In Apps Script project settings, add a Script Property named `API_KEY` with a long random secret. Set `GOOGLE_APPS_SCRIPT_API_KEY` to the same value in `backend/.env`; `GOOGLE_APPS_SCRIPT_URL` is the deployed web app URL. Deploy the script as a Web app, execute as yourself, and allow access to anyone; the API key protects its POST operations. After changing the script, deploy a new version and update the URL in `.env` if Google gives you a different one. Restart Laravel after changing environment values.
+
+The web app's GET endpoint is a health check. POST requests use JSON actions (`rows`, `append`, `update`) and require the API key. Laravel's relational database migrations are not used by these API routes; sessions and cache use local files, and queued work runs synchronously.
+
+Google Sheets is suitable here for a small demo, not a production database: reads and writes are slower, concurrent updates are not transactional, and the API has quotas. Passwords are hashed and API tokens are stored as hashes, but anyone with Editor access to the spreadsheet can read or change account data.

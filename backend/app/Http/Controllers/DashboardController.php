@@ -2,24 +2,22 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Activity;
+use App\Services\SheetDataStore;
 use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
-    public function index(Request $request)
+    public function index(Request $request, SheetDataStore $store)
     {
-        $activities = Activity::where('user_id', $request->user()->id)
-            ->latest()
-            ->limit(10)
-            ->get();
+        $user = $request->user();
+        $activities = $store->activitiesForUser($user->id);
 
         return response()->json([
             'user' => [
-                'id' => $request->user()->id,
-                'name' => $request->user()->name,
-                'email' => $request->user()->email,
-                'balance' => $request->user()->balance,
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'balance' => $user->balance,
             ],
             'activities' => $activities,
         ]);

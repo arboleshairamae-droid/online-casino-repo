@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'google_sheets' => [
+        'web_app_url' => env('GOOGLE_APPS_SCRIPT_URL'),
+        'api_key' => env('GOOGLE_APPS_SCRIPT_API_KEY'),
+    ],
+
 ];

@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
+use App\Services\SheetDataStore;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
@@ -10,11 +10,19 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
-    public function register(Request $request)
+    public function register(Request $request, SheetDataStore $store)
     {
         $validator = Validator::make($request->all(), [
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'unique:users,email'],
+            'email' => [
+                'required',
+                'email',
+                function (string $attribute, mixed $value, \Closure $fail) use ($store): void {
+                    if ($store->userByEmail($value)) {
+                        $fail('The email has already been taken.');
+                    }
+                },
+            ],
             'password' => ['required', 'string', 'min:6', 'confirmed'],
         ]);
 
@@ -25,7 +33,7 @@ class AuthController extends Controller
             ], 422);
         }
 
-        $user = User::create([
+        $user = $store->createUser([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
@@ -35,15 +43,15 @@ class AuthController extends Controller
         return response()->json([
             'message' => 'Registration successful.',
             'user' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'balance' => $user->balance,
+                'id' => $user['id'],
+                'name' => $user['name'],
+                'email' => $user['email'],
+                'balance' => $user['balance'],
             ],
         ], 201);
     }
 
-    public function login(Request $request)
+    public function login(Request $request, SheetDataStore $store)
     {
         $validator = Validator::make($request->all(), [
             'email' => ['required', 'email'],
@@ -57,24 +65,24 @@ class AuthController extends Controller
             ], 422);
         }
 
-        $user = User::where('email', $request->email)->first();
+        $user = $store->userByEmail($request->email);
 
-        if (! $user || ! Hash::check($request->password, $user->password)) {
+        if (! $user || ! Hash::check($request->password, $user['password'])) {
             throw ValidationException::withMessages([
                 'email' => ['Invalid email or password.'],
             ]);
         }
 
-        $token = $user->createToken('luckyvault-demo')->plainTextToken;
+        $token = $store->createToken($user['id']);
 
         return response()->json([
             'message' => 'Login successful.',
             'token' => $token,
             'user' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'balance' => $user->balance,
+                'id' => $user['id'],
+                'name' => $user['name'],
+                'email' => $user['email'],
+                'balance' => $user['balance'],
             ],
         ]);
     }
@@ -93,9 +101,9 @@ class AuthController extends Controller
         ]);
     }
 
-    public function logout(Request $request)
+    public function logout(Request $request, SheetDataStore $store)
     {
-        $request->user()->currentAccessToken()->delete();
+        $store->revokeToken($request->attributes->get('sheets_access_token'));
 
         return response()->json([
             'message' => 'Logout successful.',
