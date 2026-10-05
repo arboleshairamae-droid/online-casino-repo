@@ -85,10 +85,11 @@ export default function Register() {
     } catch (apiError) {
       const responseErrors = apiError.response?.data?.errors || {}
       const apiMessage = apiError.response?.data?.message || 'Please complete all required fields.'
+      const backendUrl = (import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api').replace(/\/api$/, '')
 
       if (apiError.code === 'ERR_NETWORK' || !apiError.response) {
         setErrors({
-          form: ['Unable to reach the server. Make sure the Laravel backend is running on http://127.0.0.1:8000.'],
+          form: [`Unable to reach the server. Make sure the Laravel backend is running on ${backendUrl}.`],
         })
         return null
       }
